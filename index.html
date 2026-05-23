@@ -1,0 +1,858 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>一人操作多機台標準工時計算器</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f6f8;
+      --panel: #ffffff;
+      --ink: #172033;
+      --muted: #667085;
+      --line: #d7dde7;
+      --brand: #176b87;
+      --brand-dark: #0f5268;
+      --accent: #b4542a;
+      --operator-bg: #eaf6ef;
+      --operator-ink: #1f7a45;
+      --machine-bg: #fff2e8;
+      --machine-ink: #a9471d;
+      --shadow: 0 16px 40px rgba(23, 32, 51, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(180deg, #eef3f6 0%, var(--bg) 42%, var(--bg) 100%);
+      color: var(--ink);
+      font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+      line-height: 1.55;
+    }
+
+    main {
+      width: min(1240px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 34px 0 48px;
+    }
+
+    header {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.72rem, 3vw, 2.55rem);
+      line-height: 1.18;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      max-width: 940px;
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel,
+    .result-box {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel {
+      padding: 22px;
+    }
+
+    .section-title {
+      margin: 0 0 16px;
+      font-size: 1.1rem;
+    }
+
+    .mode-tabs {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 18px;
+      padding: 5px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f6f8fa;
+    }
+
+    .mode-tabs button {
+      min-height: 44px;
+      color: #344054;
+      background: transparent;
+      border: 1px solid transparent;
+    }
+
+    .mode-tabs button.active {
+      color: #fff;
+      background: var(--brand);
+      border-color: var(--brand);
+    }
+
+    .top-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .same-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    label {
+      display: grid;
+      gap: 7px;
+      color: #344054;
+      font-weight: 650;
+      font-size: 0.95rem;
+    }
+
+    input,
+    select {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid #c9d1df;
+      border-radius: 6px;
+      padding: 9px 11px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+
+    input:focus,
+    select:focus {
+      outline: 3px solid rgba(23, 107, 135, 0.18);
+      border-color: var(--brand);
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 500;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      min-width: 720px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f2f5f8;
+      color: #344054;
+      font-size: 0.9rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    td:first-child {
+      width: 92px;
+      color: var(--brand-dark);
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    td input {
+      min-width: 112px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    button {
+      min-height: 42px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      padding: 9px 15px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .primary {
+      color: #fff;
+      background: var(--brand);
+    }
+
+    .primary:hover {
+      background: var(--brand-dark);
+    }
+
+    .secondary {
+      color: var(--ink);
+      background: #fff;
+      border-color: #c9d1df;
+    }
+
+    .secondary:hover {
+      background: #f2f4f7;
+    }
+
+    .result-box {
+      overflow: hidden;
+    }
+
+    .status {
+      padding: 20px 22px;
+      background: var(--operator-bg);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .status.machine {
+      background: var(--machine-bg);
+    }
+
+    .status-label {
+      margin: 0 0 4px;
+      color: var(--muted);
+      font-size: 0.86rem;
+      font-weight: 700;
+    }
+
+    .status-value {
+      margin: 0;
+      color: var(--operator-ink);
+      font-size: 1.65rem;
+      line-height: 1.2;
+      font-weight: 850;
+    }
+
+    .status.machine .status-value {
+      color: var(--machine-ink);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1px;
+      background: var(--line);
+    }
+
+    .metric {
+      min-height: 110px;
+      padding: 17px;
+      background: #fff;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 8px;
+      font-size: clamp(1.42rem, 2.6vw, 2rem);
+      line-height: 1.12;
+    }
+
+    .formula {
+      padding: 20px 22px 22px;
+    }
+
+    .formula h2 {
+      margin: 0 0 12px;
+      font-size: 1.05rem;
+    }
+
+    .formula-line {
+      margin: 9px 0;
+      padding: 10px 12px;
+      border: 1px solid #dfe4ee;
+      border-radius: 6px;
+      background: #fafbfc;
+      font-family: Consolas, "Microsoft JhengHei", monospace;
+      overflow-wrap: anywhere;
+    }
+
+    .machine-list {
+      margin: 8px 0 0;
+      padding-left: 20px;
+      color: #344054;
+    }
+
+    .machine-list li {
+      margin: 4px 0;
+    }
+
+    .notice {
+      margin-top: 16px;
+      padding: 12px 14px;
+      border-left: 4px solid var(--accent);
+      background: #fff7f4;
+      color: #6f2c18;
+      font-size: 0.94rem;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .error {
+      display: none;
+      margin-top: 14px;
+      padding: 11px 13px;
+      border-radius: 6px;
+      color: #8a1f11;
+      background: #fff0ed;
+      border: 1px solid #ffd0c7;
+      font-weight: 650;
+    }
+
+    .error.show {
+      display: block;
+    }
+
+    @media (max-width: 920px) {
+      main {
+        width: min(100% - 24px, 760px);
+        padding-top: 24px;
+      }
+
+      .layout,
+      .top-grid,
+      .same-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .mode-tabs,
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>一人操作多機台標準工時計算器</h1>
+      <p class="subtitle">整合「N 台相同機台」與「N 台不同機台」兩種題型。切換模式後，系統會顯示對應輸入欄位、判斷瓶頸，並計算週期時間 CT 與標準工時 ST。</p>
+    </header>
+
+    <div class="layout">
+      <section class="panel" aria-labelledby="input-title">
+        <h2 class="section-title" id="input-title">輸入變數</h2>
+
+        <div class="mode-tabs" role="tablist" aria-label="計算模式">
+          <button class="active" type="button" id="same-mode" role="tab" aria-selected="true">N 台相同機台</button>
+          <button type="button" id="different-mode" role="tab" aria-selected="false">N 台不同機台</button>
+        </div>
+
+        <form id="calculator" novalidate>
+          <div class="top-grid">
+            <label>
+              N 機台數
+              <select id="n"></select>
+              <span class="hint" id="n-hint">相同機台模式不限 4 台</span>
+            </label>
+
+            <label>
+              完成件數 K
+              <input id="k" type="number" inputmode="numeric" min="1" step="1">
+              <span class="hint">要完成的總件數</span>
+            </label>
+
+            <label>
+              寬放時間 ALL
+              <input id="all" type="number" inputmode="decimal" min="0" step="0.01">
+              <span class="hint">完成 K 件額外加入的寬放時間</span>
+            </label>
+          </div>
+
+          <div id="same-inputs" class="same-grid">
+            <label>
+              每台裝機時間 L
+              <input id="same-l" type="number" inputmode="decimal" min="0" step="0.01">
+              <span class="hint">每台機台每件裝機所需時間</span>
+            </label>
+
+            <label>
+              每台卸機時間 UL
+              <input id="same-ul" type="number" inputmode="decimal" min="0" step="0.01">
+              <span class="hint">每台機台每件卸機所需時間</span>
+            </label>
+
+            <label>
+              每台整備時間 P
+              <input id="same-p" type="number" inputmode="decimal" min="0" step="0.01">
+              <span class="hint">整備、檢查或必要輔助時間</span>
+            </label>
+
+            <label>
+              機台自行運轉時間 M
+              <input id="same-m" type="number" inputmode="decimal" min="0" step="0.01">
+              <span class="hint">機台不需人員介入的自動加工時間</span>
+            </label>
+          </div>
+
+          <div id="different-inputs" class="hidden">
+            <div class="table-wrap" aria-live="polite">
+              <table>
+                <thead>
+                  <tr>
+                    <th>機台</th>
+                    <th>裝機時間 Li</th>
+                    <th>卸機時間 ULi</th>
+                    <th>整備時間 Pi</th>
+                    <th>自行運轉時間 Mi</th>
+                  </tr>
+                </thead>
+                <tbody id="machine-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="primary" type="submit">計算</button>
+            <button class="secondary" type="button" id="reset">恢復範例值</button>
+          </div>
+
+          <div class="error" id="error" role="alert"></div>
+        </form>
+
+        <div class="notice" id="mode-note"></div>
+      </section>
+
+      <aside class="result-box" aria-live="polite">
+        <div class="status" id="status">
+          <p class="status-label">瓶頸判斷</p>
+          <p class="status-value" id="bottleneck">操作員是瓶頸</p>
+        </div>
+
+        <div class="metrics">
+          <div class="metric">
+            <span>週期時間 CT</span>
+            <strong id="ct">0</strong>
+          </div>
+          <div class="metric">
+            <span>標準工時 ST</span>
+            <strong id="st">0</strong>
+          </div>
+          <div class="metric">
+            <span id="operator-label">操作員所需時間</span>
+            <strong id="operator-time">0</strong>
+          </div>
+          <div class="metric">
+            <span id="machine-label">機台所需時間</span>
+            <strong id="machine-time">0</strong>
+          </div>
+        </div>
+
+        <div class="formula">
+          <h2>計算過程</h2>
+          <p class="formula-line" id="operator-formula"></p>
+          <p class="formula-line" id="machine-formula"></p>
+          <ol class="machine-list hidden" id="machine-list"></ol>
+          <p class="formula-line" id="ct-formula"></p>
+          <p class="formula-line" id="st-formula"></p>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    const MODE_SAME = "same";
+    const MODE_DIFFERENT = "different";
+
+    const defaults = {
+      same: {
+        n: 2,
+        k: 1000,
+        all: 0,
+        l: 1.2,
+        ul: 0.8,
+        p: 0.5,
+        m: 5
+      },
+      different: {
+        n: 3,
+        k: 100,
+        all: 0,
+        machines: [
+          { l: 1.2, ul: 0.8, p: 0.5, m: 5 },
+          { l: 1.5, ul: 0.7, p: 0.6, m: 6 },
+          { l: 1.1, ul: 0.9, p: 0.4, m: 4.5 },
+          { l: 1.4, ul: 0.8, p: 0.5, m: 5.5 }
+        ]
+      }
+    };
+
+    let mode = MODE_SAME;
+
+    const controls = {
+      sameMode: document.querySelector("#same-mode"),
+      differentMode: document.querySelector("#different-mode"),
+      n: document.querySelector("#n"),
+      nHint: document.querySelector("#n-hint"),
+      k: document.querySelector("#k"),
+      all: document.querySelector("#all"),
+      sameInputs: document.querySelector("#same-inputs"),
+      differentInputs: document.querySelector("#different-inputs"),
+      sameL: document.querySelector("#same-l"),
+      sameUl: document.querySelector("#same-ul"),
+      sameP: document.querySelector("#same-p"),
+      sameM: document.querySelector("#same-m"),
+      machineBody: document.querySelector("#machine-body"),
+      reset: document.querySelector("#reset"),
+      form: document.querySelector("#calculator"),
+      error: document.querySelector("#error"),
+      modeNote: document.querySelector("#mode-note")
+    };
+
+    const output = {
+      status: document.querySelector("#status"),
+      bottleneck: document.querySelector("#bottleneck"),
+      ct: document.querySelector("#ct"),
+      st: document.querySelector("#st"),
+      operatorLabel: document.querySelector("#operator-label"),
+      machineLabel: document.querySelector("#machine-label"),
+      operatorTime: document.querySelector("#operator-time"),
+      machineTime: document.querySelector("#machine-time"),
+      operatorFormula: document.querySelector("#operator-formula"),
+      machineFormula: document.querySelector("#machine-formula"),
+      machineList: document.querySelector("#machine-list"),
+      ctFormula: document.querySelector("#ct-formula"),
+      stFormula: document.querySelector("#st-formula")
+    };
+
+    function formatNumber(value) {
+      return new Intl.NumberFormat("zh-Hant-TW", {
+        maximumFractionDigits: 4
+      }).format(value);
+    }
+
+    function inputId(field, index) {
+      return `${field}${index + 1}`;
+    }
+
+    function setNOptions(maxN, selectedN, minN = 1) {
+      controls.n.innerHTML = "";
+      for (let n = minN; n <= maxN; n += 1) {
+        const option = document.createElement("option");
+        option.value = String(n);
+        option.textContent = `${n} 台`;
+        option.selected = n === selectedN;
+        controls.n.appendChild(option);
+      }
+    }
+
+    function getMachineValue(field, index) {
+      const input = document.querySelector(`#${inputId(field, index)}`);
+      const fallback = defaults.different.machines[index][field];
+      return input ? input.value : fallback;
+    }
+
+    function renderMachineRows() {
+      const n = Number(controls.n.value);
+      controls.machineBody.innerHTML = "";
+
+      for (let index = 0; index < n; index += 1) {
+        const row = document.createElement("tr");
+        const machineCell = document.createElement("td");
+        machineCell.textContent = `第 ${index + 1} 台`;
+        row.appendChild(machineCell);
+
+        [
+          ["l", `L${index + 1}`, "裝機時間"],
+          ["ul", `UL${index + 1}`, "卸機時間"],
+          ["p", `P${index + 1}`, "整備時間"],
+          ["m", `M${index + 1}`, "自行運轉時間"]
+        ].forEach(([field, label, title]) => {
+          const cell = document.createElement("td");
+          const input = document.createElement("input");
+          input.id = inputId(field, index);
+          input.type = "number";
+          input.inputMode = "decimal";
+          input.min = "0";
+          input.step = "0.01";
+          input.value = getMachineValue(field, index);
+          input.setAttribute("aria-label", `第 ${index + 1} 台${title} ${label}`);
+          input.addEventListener("input", calculate);
+          cell.appendChild(input);
+          row.appendChild(cell);
+        });
+
+        controls.machineBody.appendChild(row);
+      }
+    }
+
+    function setMode(nextMode) {
+      mode = nextMode;
+      const isSame = mode === MODE_SAME;
+
+      controls.sameMode.classList.toggle("active", isSame);
+      controls.differentMode.classList.toggle("active", !isSame);
+      controls.sameMode.setAttribute("aria-selected", String(isSame));
+      controls.differentMode.setAttribute("aria-selected", String(!isSame));
+      controls.sameInputs.classList.toggle("hidden", !isSame);
+      controls.differentInputs.classList.toggle("hidden", isSame);
+      output.machineList.classList.toggle("hidden", isSame);
+
+      if (isSame) {
+        setNOptions(10, defaults.same.n);
+        controls.nHint.textContent = "相同機台模式可選 1 到 10 台";
+        controls.k.value = defaults.same.k;
+        controls.all.value = defaults.same.all;
+        controls.sameL.value = defaults.same.l;
+        controls.sameUl.value = defaults.same.ul;
+        controls.sameP.value = defaults.same.p;
+        controls.sameM.value = defaults.same.m;
+        controls.modeNote.textContent = "相同機台模式：操作員時間 = N × (L + UL + P)，機台時間 = L + UL + M，CT = MAX(操作員時間, 機台時間)，ST = CT / N × K + ALL。";
+      } else {
+        setNOptions(4, defaults.different.n, 2);
+        controls.nHint.textContent = "不同機台模式可選 2 到 4 台";
+        controls.k.value = defaults.different.k;
+        controls.all.value = defaults.different.all;
+        controls.modeNote.textContent = "不同機台模式：操作員時間 = Σ(Li + ULi + Pi)，各機台時間 = Li + ULi + Mi，CT 取最大值，ST = CT × K + ALL。";
+        renderMachineRows();
+      }
+
+      calculate();
+    }
+
+    function readSameInputs() {
+      return {
+        n: Number(controls.n.value),
+        k: Number(controls.k.value),
+        all: Number(controls.all.value),
+        l: Number(controls.sameL.value),
+        ul: Number(controls.sameUl.value),
+        p: Number(controls.sameP.value),
+        m: Number(controls.sameM.value)
+      };
+    }
+
+    function readDifferentInputs() {
+      const n = Number(controls.n.value);
+      const machines = [];
+
+      for (let index = 0; index < n; index += 1) {
+        machines.push({
+          l: Number(document.querySelector(`#${inputId("l", index)}`).value),
+          ul: Number(document.querySelector(`#${inputId("ul", index)}`).value),
+          p: Number(document.querySelector(`#${inputId("p", index)}`).value),
+          m: Number(document.querySelector(`#${inputId("m", index)}`).value)
+        });
+      }
+
+      return {
+        n,
+        k: Number(controls.k.value),
+        all: Number(controls.all.value),
+        machines
+      };
+    }
+
+    function validateCommon(values, maxN) {
+      const minN = mode === MODE_DIFFERENT ? 2 : 1;
+      if (!Number.isInteger(values.n) || values.n < minN || values.n > maxN) {
+        return `N 機台數必須是 ${minN} 到 ${maxN} 的整數。`;
+      }
+
+      if (!Number.isInteger(values.k) || values.k <= 0) {
+        return "完成件數 K 必須是大於 0 的整數。";
+      }
+
+      if (!Number.isFinite(values.all) || values.all < 0) {
+        return "寬放時間 ALL 不可為負數，且必須是有效數字。";
+      }
+
+      return "";
+    }
+
+    function validateSame(values) {
+      const commonError = validateCommon(values, 10);
+      if (commonError) return commonError;
+
+      const hasInvalidTime = ["l", "ul", "p", "m"].some((field) =>
+        !Number.isFinite(values[field]) || values[field] < 0
+      );
+
+      return hasInvalidTime ? "L、UL、P、M 不可為負數，且必須是有效數字。" : "";
+    }
+
+    function validateDifferent(values) {
+      const commonError = validateCommon(values, 4);
+      if (commonError) return commonError;
+
+      const hasInvalidTime = values.machines.some((machine) =>
+        ["l", "ul", "p", "m"].some((field) => !Number.isFinite(machine[field]) || machine[field] < 0)
+      );
+
+      return hasInvalidTime ? "各機台的 L、UL、P、M 不可為負數，且必須是有效數字。" : "";
+    }
+
+    function showError(message) {
+      controls.error.textContent = message;
+      controls.error.classList.toggle("show", Boolean(message));
+    }
+
+    function calculateSame() {
+      const values = readSameInputs();
+      const errorMessage = validateSame(values);
+      if (errorMessage) {
+        showError(errorMessage);
+        return;
+      }
+
+      const operatorTime = values.n * (values.l + values.ul + values.p);
+      const machineTime = values.l + values.ul + values.m;
+      const ct = Math.max(operatorTime, machineTime);
+      const st = (ct / values.n) * values.k + values.all;
+      const isOperatorBottleneck = operatorTime > machineTime;
+
+      output.operatorLabel.textContent = "操作員所需時間";
+      output.machineLabel.textContent = "單機循環時間";
+      output.status.classList.toggle("machine", !isOperatorBottleneck);
+      output.bottleneck.textContent = isOperatorBottleneck ? "操作員是瓶頸" : "機台是瓶頸";
+      output.operatorTime.textContent = formatNumber(operatorTime);
+      output.machineTime.textContent = formatNumber(machineTime);
+      output.ct.textContent = formatNumber(ct);
+      output.st.textContent = formatNumber(st);
+      output.machineList.innerHTML = "";
+      output.machineList.classList.add("hidden");
+
+      output.operatorFormula.textContent =
+        `操作員所需時間 = N × (L + UL + P) = ${values.n} × (${values.l} + ${values.ul} + ${values.p}) = ${formatNumber(operatorTime)}`;
+      output.machineFormula.textContent =
+        `單機循環時間 = L + UL + M = ${values.l} + ${values.ul} + ${values.m} = ${formatNumber(machineTime)}`;
+      output.ctFormula.textContent =
+        `CT = MAX(${formatNumber(operatorTime)}, ${formatNumber(machineTime)}) = ${formatNumber(ct)}`;
+      output.stFormula.textContent =
+        `ST = CT / N × K + ALL = ${formatNumber(ct)} / ${values.n} × ${values.k} + ${values.all} = ${formatNumber(st)}`;
+      showError("");
+    }
+
+    function calculateDifferent() {
+      const values = readDifferentInputs();
+      const errorMessage = validateDifferent(values);
+      if (errorMessage) {
+        showError(errorMessage);
+        return;
+      }
+
+      const operatorParts = values.machines.map((machine) => machine.l + machine.ul + machine.p);
+      const machineTimes = values.machines.map((machine) => machine.l + machine.ul + machine.m);
+      const operatorTime = operatorParts.reduce((sum, time) => sum + time, 0);
+      const maxMachineTime = Math.max(...machineTimes);
+      const ct = Math.max(operatorTime, maxMachineTime);
+      const st = ct * values.k + values.all;
+      const machineIndex = machineTimes.indexOf(maxMachineTime) + 1;
+      const isOperatorBottleneck = operatorTime >= maxMachineTime;
+
+      output.operatorLabel.textContent = "操作員所需時間";
+      output.machineLabel.textContent = "最大機台時間";
+      output.status.classList.toggle("machine", !isOperatorBottleneck);
+      output.bottleneck.textContent = isOperatorBottleneck ? "操作員是瓶頸" : `第 ${machineIndex} 台機台是瓶頸`;
+      output.operatorTime.textContent = formatNumber(operatorTime);
+      output.machineTime.textContent = formatNumber(maxMachineTime);
+      output.ct.textContent = formatNumber(ct);
+      output.st.textContent = formatNumber(st);
+      output.machineList.innerHTML = "";
+      output.machineList.classList.remove("hidden");
+
+      machineTimes.forEach((time, index) => {
+        const machine = values.machines[index];
+        const item = document.createElement("li");
+        item.textContent =
+          `第 ${index + 1} 台：${machine.l} + ${machine.ul} + ${machine.m} = ${formatNumber(time)}`;
+        output.machineList.appendChild(item);
+      });
+
+      output.operatorFormula.textContent =
+        `操作員所需時間 = Σ(Li + ULi + Pi) = ${operatorParts.map(formatNumber).join(" + ")} = ${formatNumber(operatorTime)}`;
+      output.machineFormula.textContent =
+        `各機台時間 = Li + ULi + Mi，最大機台時間 = ${formatNumber(maxMachineTime)}`;
+      output.ctFormula.textContent =
+        `CT = MAX(${formatNumber(operatorTime)}, ${formatNumber(maxMachineTime)}) = ${formatNumber(ct)}`;
+      output.stFormula.textContent =
+        `ST = CT × K + ALL = ${formatNumber(ct)} × ${values.k} + ${values.all} = ${formatNumber(st)}`;
+      showError("");
+    }
+
+    function calculate() {
+      if (mode === MODE_SAME) {
+        calculateSame();
+      } else {
+        calculateDifferent();
+      }
+    }
+
+    function resetDefaults() {
+      setMode(mode);
+    }
+
+    controls.sameMode.addEventListener("click", () => setMode(MODE_SAME));
+    controls.differentMode.addEventListener("click", () => setMode(MODE_DIFFERENT));
+    controls.n.addEventListener("change", () => {
+      if (mode === MODE_DIFFERENT) {
+        renderMachineRows();
+      }
+      calculate();
+    });
+    controls.k.addEventListener("input", calculate);
+    controls.all.addEventListener("input", calculate);
+    controls.sameL.addEventListener("input", calculate);
+    controls.sameUl.addEventListener("input", calculate);
+    controls.sameP.addEventListener("input", calculate);
+    controls.sameM.addEventListener("input", calculate);
+    controls.reset.addEventListener("click", resetDefaults);
+    controls.form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      calculate();
+    });
+
+    setMode(MODE_SAME);
+  </script>
+</body>
+</html>

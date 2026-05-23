@@ -826,7 +826,7 @@
       const ct = Math.max(operatorTime, machineTime);
       const st = (ct / values.n) * values.k + values.all;
       const available = availableWorkTime(values.all, values.unit);
-      const capacity = available > 0 ? (available / ct) * values.n : 0;
+      const capacity = Math.floor(available > 0 ? (available / ct) * values.n : 0);
       const isOperatorBottleneck = operatorTime > machineTime;
 
       output.operatorLabel.textContent = "操作員所需時間";
@@ -869,7 +869,7 @@
       const ct = Math.max(operatorTime, maxMachineTime);
       const st = ct * values.k + values.all;
       const available = availableWorkTime(values.all, values.unit);
-      const capacity = available > 0 ? available / ct : 0;
+      const capacity = Math.floor(available > 0 ? available / ct : 0);
       const machineIndex = machineTimes.indexOf(maxMachineTime) + 1;
       const isOperatorBottleneck = operatorTime >= maxMachineTime;
 

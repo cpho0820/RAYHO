@@ -448,6 +448,15 @@
               <input id="all" type="number" inputmode="decimal" min="0" step="0.01">
               <span class="hint">完成 K 件額外加入的寬放時間</span>
             </label>
+
+            <label>
+              量測時間單位
+              <select id="time-unit">
+                <option value="minutes">分鐘</option>
+                <option value="seconds">秒鐘</option>
+              </select>
+              <span class="hint">請選擇 L、UL、P、M、ALL 的時間單位</span>
+            </label>
           </div>
 
           <div id="same-inputs" class="same-grid">
@@ -527,6 +536,10 @@
             <span id="machine-label">機台所需時間</span>
             <strong id="machine-time">0</strong>
           </div>
+          <div class="metric">
+            <span>8 小時產能</span>
+            <strong id="capacity">0</strong>
+          </div>
         </div>
 
         <div class="formula">
@@ -536,6 +549,7 @@
           <ol class="machine-list hidden" id="machine-list"></ol>
           <p class="formula-line" id="ct-formula"></p>
           <p class="formula-line" id="st-formula"></p>
+          <p class="formula-line" id="capacity-formula"></p>
         </div>
       </aside>
     </div>
@@ -550,6 +564,7 @@
         n: 2,
         k: 1000,
         all: 0,
+        unit: "seconds",
         l: 1.2,
         ul: 0.8,
         p: 0.5,
@@ -559,6 +574,7 @@
         n: 3,
         k: 100,
         all: 0,
+        unit: "minutes",
         machines: [
           { l: 1.2, ul: 0.8, p: 0.5, m: 5 },
           { l: 1.5, ul: 0.7, p: 0.6, m: 6 },
@@ -577,6 +593,7 @@
       nHint: document.querySelector("#n-hint"),
       k: document.querySelector("#k"),
       all: document.querySelector("#all"),
+      timeUnit: document.querySelector("#time-unit"),
       sameInputs: document.querySelector("#same-inputs"),
       differentInputs: document.querySelector("#different-inputs"),
       sameL: document.querySelector("#same-l"),
@@ -595,6 +612,7 @@
       bottleneck: document.querySelector("#bottleneck"),
       ct: document.querySelector("#ct"),
       st: document.querySelector("#st"),
+      capacity: document.querySelector("#capacity"),
       operatorLabel: document.querySelector("#operator-label"),
       machineLabel: document.querySelector("#machine-label"),
       operatorTime: document.querySelector("#operator-time"),
@@ -603,7 +621,8 @@
       machineFormula: document.querySelector("#machine-formula"),
       machineList: document.querySelector("#machine-list"),
       ctFormula: document.querySelector("#ct-formula"),
-      stFormula: document.querySelector("#st-formula")
+      stFormula: document.querySelector("#st-formula"),
+      capacityFormula: document.querySelector("#capacity-formula")
     };
 
     function formatNumber(value) {
@@ -684,6 +703,7 @@
         controls.nHint.textContent = "相同機台模式可選 1 到 10 台";
         controls.k.value = defaults.same.k;
         controls.all.value = defaults.same.all;
+        controls.timeUnit.value = defaults.same.unit;
         controls.sameL.value = defaults.same.l;
         controls.sameUl.value = defaults.same.ul;
         controls.sameP.value = defaults.same.p;
@@ -694,6 +714,7 @@
         controls.nHint.textContent = "不同機台模式可選 2 到 4 台";
         controls.k.value = defaults.different.k;
         controls.all.value = defaults.different.all;
+        controls.timeUnit.value = defaults.different.unit;
         controls.modeNote.textContent = "不同機台模式：操作員時間 = Σ(Li + ULi + Pi)，各機台時間 = Li + ULi + Mi，CT 取最大值，ST = CT × K + ALL。";
         renderMachineRows();
       }
@@ -706,6 +727,7 @@
         n: Number(controls.n.value),
         k: Number(controls.k.value),
         all: Number(controls.all.value),
+        unit: controls.timeUnit.value,
         l: Number(controls.sameL.value),
         ul: Number(controls.sameUl.value),
         p: Number(controls.sameP.value),
@@ -730,6 +752,7 @@
         n,
         k: Number(controls.k.value),
         all: Number(controls.all.value),
+        unit: controls.timeUnit.value,
         machines
       };
     }
@@ -778,6 +801,18 @@
       controls.error.classList.toggle("show", Boolean(message));
     }
 
+    function availableWorkTime(all, unit) {
+      return unit === "seconds" ? 480 * 60 - 30 * 60 - all : 480 - 30 - all;
+    }
+
+    function unitLabel(unit) {
+      return unit === "seconds" ? "秒鐘" : "分鐘";
+    }
+
+    function capacityFormulaPrefix(unit) {
+      return unit === "seconds" ? "480 × 60 - 30 × 60 - ALL" : "480 - 30 - ALL";
+    }
+
     function calculateSame() {
       const values = readSameInputs();
       const errorMessage = validateSame(values);
@@ -790,6 +825,8 @@
       const machineTime = values.l + values.ul + values.m;
       const ct = Math.max(operatorTime, machineTime);
       const st = (ct / values.n) * values.k + values.all;
+      const available = availableWorkTime(values.all, values.unit);
+      const capacity = available > 0 ? (available / ct) * values.n : 0;
       const isOperatorBottleneck = operatorTime > machineTime;
 
       output.operatorLabel.textContent = "操作員所需時間";
@@ -800,6 +837,7 @@
       output.machineTime.textContent = formatNumber(machineTime);
       output.ct.textContent = formatNumber(ct);
       output.st.textContent = formatNumber(st);
+      output.capacity.textContent = formatNumber(capacity);
       output.machineList.innerHTML = "";
       output.machineList.classList.add("hidden");
 
@@ -811,6 +849,8 @@
         `CT = MAX(${formatNumber(operatorTime)}, ${formatNumber(machineTime)}) = ${formatNumber(ct)}`;
       output.stFormula.textContent =
         `ST = CT / N × K + ALL = ${formatNumber(ct)} / ${values.n} × ${values.k} + ${values.all} = ${formatNumber(st)}`;
+      output.capacityFormula.textContent =
+        `8 小時產能（${unitLabel(values.unit)}） = (${capacityFormulaPrefix(values.unit)}) / CT × N = (${formatNumber(available)}) / ${formatNumber(ct)} × ${values.n} = ${formatNumber(capacity)}`;
       showError("");
     }
 
@@ -828,6 +868,8 @@
       const maxMachineTime = Math.max(...machineTimes);
       const ct = Math.max(operatorTime, maxMachineTime);
       const st = ct * values.k + values.all;
+      const available = availableWorkTime(values.all, values.unit);
+      const capacity = available > 0 ? available / ct : 0;
       const machineIndex = machineTimes.indexOf(maxMachineTime) + 1;
       const isOperatorBottleneck = operatorTime >= maxMachineTime;
 
@@ -839,6 +881,7 @@
       output.machineTime.textContent = formatNumber(maxMachineTime);
       output.ct.textContent = formatNumber(ct);
       output.st.textContent = formatNumber(st);
+      output.capacity.textContent = formatNumber(capacity);
       output.machineList.innerHTML = "";
       output.machineList.classList.remove("hidden");
 
@@ -858,6 +901,8 @@
         `CT = MAX(${formatNumber(operatorTime)}, ${formatNumber(maxMachineTime)}) = ${formatNumber(ct)}`;
       output.stFormula.textContent =
         `ST = CT × K + ALL = ${formatNumber(ct)} × ${values.k} + ${values.all} = ${formatNumber(st)}`;
+      output.capacityFormula.textContent =
+        `8 小時產能（${unitLabel(values.unit)}） = (${capacityFormulaPrefix(values.unit)}) / CT = (${formatNumber(available)}) / ${formatNumber(ct)} = ${formatNumber(capacity)}`;
       showError("");
     }
 
@@ -883,6 +928,7 @@
     });
     controls.k.addEventListener("input", calculate);
     controls.all.addEventListener("input", calculate);
+    controls.timeUnit.addEventListener("change", calculate);
     controls.sameL.addEventListener("input", calculate);
     controls.sameUl.addEventListener("input", calculate);
     controls.sameP.addEventListener("input", calculate);

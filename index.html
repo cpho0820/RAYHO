@@ -61,6 +61,36 @@
       font-size: 1rem;
     }
 
+    .intro {
+      display: grid;
+      gap: 13px;
+      margin-bottom: 22px;
+      padding: 20px 22px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .intro h2 {
+      margin: 0;
+      font-size: 1.18rem;
+      line-height: 1.35;
+    }
+
+    .intro p {
+      margin: 0;
+      color: #344054;
+    }
+
+    .intro ul {
+      display: grid;
+      gap: 6px;
+      margin: 0;
+      padding-left: 22px;
+      color: #344054;
+    }
+
     .layout {
       display: grid;
       grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
@@ -378,6 +408,17 @@
       <h1>一人操作多機台標準工時計算器</h1>
       <p class="subtitle">整合「N 台相同機台」與「N 台不同機台」兩種題型。切換模式後，系統會顯示對應輸入欄位、判斷瓶頸，並計算週期時間 CT 與標準工時 ST。</p>
     </header>
+
+    <section class="intro" aria-labelledby="intro-title">
+      <h2 id="intro-title">標準工時量測與人機同時作業應用說明</h2>
+      <p>標準工時不只是「平均時間 × 評比 ×（1＋寬放率）」的公式背誦，而是企業進行報價、產能規劃、生產排程、績效管理與現場改善的重要管理基礎。當製程中出現一人多機、人機同時作業或不同機台混合作業時，傳統只看單一人工作業時間的計算方式，往往無法清楚呈現真正的瓶頸。</p>
+      <p>本計算器依人機程序圖的觀念，將操作員人工時間與機台自行運轉時間分開比較，先找出瓶頸，再依不同情境計算週期時間與完成指定件數所需的標準工時。使用者可依課堂案例選擇「N 台相同機台」或「N 台不同機台」模式，快速觀察操作員與機台之間的負荷關係。</p>
+      <ul>
+        <li>相同機台模式適用於一人操作多台條件一致的機台，標準工時為 ST = CT / N × K + ALL。</li>
+        <li>不同機台模式適用於一人操作 2 到 4 台條件不同的機台，每週期完成一件成品，標準工時為 ST = CT × K + ALL。</li>
+        <li>瓶頸判斷結果可協助確認改善方向：若操作員是瓶頸，應檢討裝卸、整備與動作流程；若機台是瓶頸，則應檢討加工時間、設備能力與排程配置。</li>
+      </ul>
+    </section>
 
     <div class="layout">
       <section class="panel" aria-labelledby="input-title">
